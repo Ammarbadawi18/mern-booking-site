@@ -1,6 +1,8 @@
 import { useState } from "react";
 import axios from "axios";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
+
 
 interface RegisterFormData {
     firstName: string;
@@ -9,7 +11,6 @@ interface RegisterFormData {
     password: string;
     confirmPassword: string;
 }
-
 const Register = () => {
     const {
         register,
@@ -20,12 +21,12 @@ const Register = () => {
     } = useForm<RegisterFormData>();
 
     const [emailErrorMessage, setEmailErrorMessage] = useState<string | null>(null);
-
+    const navigate = useNavigate();
     const onSubmit = async (data: RegisterFormData) => {
         try {
             const response = await axios.post("http://localhost:3000/register", data);
             console.log("Registration successful:", response.data);
-            // Handle successful registration here, e.g., redirect to another page
+            navigate("/");
             setValue("firstName", "");
             setValue("lastName", "");
             setValue("email", "");
