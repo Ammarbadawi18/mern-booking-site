@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
+import { useAppContext } from "../contexts/AppContext";
 
 
 interface RegisterFormData {
@@ -12,6 +13,7 @@ interface RegisterFormData {
     confirmPassword: string;
 }
 const Register = () => {
+    const { showToast } = useAppContext();
     const {
         register,
         handleSubmit,
@@ -20,12 +22,12 @@ const Register = () => {
         watch,
     } = useForm<RegisterFormData>();
 
-    const [emailErrorMessage, setEmailErrorMessage] = useState<string | null>(null);
+    const [emailErrorMessage] = useState<string | null>(null);
     const navigate = useNavigate();
     const onSubmit = async (data: RegisterFormData) => {
         try {
-            const response = await axios.post("http://localhost:3000/register", data);
-            console.log("Registration successful:", response.data);
+            await axios.post("http://localhost:3000/register", data);
+            showToast({ message: "Registration Successful.", type: "SUCCESS" })
             navigate("/");
             setValue("firstName", "");
             setValue("lastName", "");
@@ -36,10 +38,13 @@ const Register = () => {
             console.error("Registration failed:", error);
             if (axios.isAxiosError(error) && error.response) {
                 const { data } = error.response;
-                if (data.message && typeof data.message === "string") {
-                    setEmailErrorMessage(data.message);
+                if ("errors" in data && Array.isArray(data.errors)) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    data.errors.forEach((errorMsg: any) => showToast({ message: errorMsg, type: "ERROR" }));
+                } else if ("message" in data && typeof data.message === "string") {
+                    showToast({ message: data.message, type: "ERROR" });
                 } else {
-                    setEmailErrorMessage(null);
+                    showToast({ message: "Registration failed. Please try again.", type: "ERROR" });
                 }
             }
         }
