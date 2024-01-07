@@ -1,11 +1,10 @@
-import { useState } from "react";
-import axios from "axios";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
+import { useMutation, useQueryClient } from "react-query";
+import * as apiClient from "../api-client";
 
-
-interface RegisterFormData {
+export interface RegisterFormData {
     firstName: string;
     lastName: string;
     email: string;
@@ -13,45 +12,35 @@ interface RegisterFormData {
     confirmPassword: string;
 }
 const Register = () => {
+    const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const { showToast } = useAppContext();
+
     const {
         register,
+        watch,
         handleSubmit,
         formState: { errors },
-        setValue,
-        watch,
     } = useForm<RegisterFormData>();
 
-    const [emailErrorMessage] = useState<string | null>(null);
-    const navigate = useNavigate();
-    const onSubmit = async (data: RegisterFormData) => {
-        try {
-            await axios.post("http://localhost:3000/register", data);
-            showToast({ message: "Registration Successful.", type: "SUCCESS" })
+    const mutation = useMutation(apiClient.register, {
+        onSuccess: async () => {
+            showToast({ message: "Registration Success!", type: "SUCCESS" });
+            await queryClient.invalidateQueries("validateToken");
             navigate("/");
-            setValue("firstName", "");
-            setValue("lastName", "");
-            setValue("email", "");
-            setValue("password", "");
-            setValue("confirmPassword", "");
-        } catch (error) {
-            console.error("Registration failed:", error);
-            if (axios.isAxiosError(error) && error.response) {
-                const { data } = error.response;
-                if ("errors" in data && Array.isArray(data.errors)) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    data.errors.forEach((errorMsg: any) => showToast({ message: errorMsg, type: "ERROR" }));
-                } else if ("message" in data && typeof data.message === "string") {
-                    showToast({ message: data.message, type: "ERROR" });
-                } else {
-                    showToast({ message: "Registration failed. Please try again.", type: "ERROR" });
-                }
-            }
-        }
-    };
+        },
+        onError: (error: Error) => {
+            showToast({ message: error.message, type: "ERROR" });
+        },
+    });
+
+    const onSubmit = handleSubmit((data) => {
+        mutation.mutate(data);
+    });
+
 
     return (
-        <form className="flex flex-col gap-5" onSubmit={handleSubmit(onSubmit)}>
+        <form className="flex flex-col gap-5" onSubmit={onSubmit}>
             <h2 className="text-3xl font-bold">Create an Account</h2>
             <div className="flex flex-col md:flex-row gap-5">
                 <label className="text-gray-700 text-sm font-bold flex-1">
@@ -78,17 +67,14 @@ const Register = () => {
                 </label>
             </div>
             <label className="text-gray-700 text-sm font-bold flex-1">
-                Email:
+                Email
                 <input
                     type="email"
                     className="border border-red-800 rounded w-full py-1 px-2 font-normal"
                     {...register("email", { required: "This field is required" })}
-                />
+                ></input>
                 {errors.email && (
                     <span className="text-red-500">{errors.email.message}</span>
-                )}
-                {emailErrorMessage && (
-                    <span className="text-red-500">{emailErrorMessage}</span>
                 )}
             </label>
             <label className="text-gray-700 text-sm font-bold flex-1">

@@ -2,6 +2,7 @@ import { BrowserRouter as Router , Route, Routes,Navigate } from "react-router-d
 import Layout from "./layouts/Layout";
 import Register from "./pages/Register";
 
+
 const App = () => {
   return (
     <Router>
